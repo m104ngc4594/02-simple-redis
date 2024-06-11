@@ -66,6 +66,7 @@ impl RespDecode for RespFrame {
                 let frame = RespSet::decode(buf)?;
                 Ok(frame.into())
             }
+            None => Err(RespError::NotComplete),
             _ => Err(RespError::InvalidFrameType(format!(
                 "unknown frame type: {:?}",
                 buf
@@ -218,7 +219,7 @@ impl RespDecode for RespArray {
     fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
         let (end, len) = parse_length(buf, Self::PREFIX)?;
 
-        let total_len = calc_total_length(buf, len, end, Self::PREFIX)?;
+        let total_len = calc_total_length(buf, end, len, Self::PREFIX)?;
 
         if buf.len() < total_len {
             return Err(RespError::NotComplete);
@@ -367,7 +368,6 @@ fn parse_length(buf: &[u8], prefix: &str) -> Result<(usize, usize), RespError> {
     Ok((end, s.parse()?))
 }
 
-// TODO: fix this - currently it works only if data has no CRLF
 fn calc_total_length(buf: &[u8], end: usize, len: usize, prefix: &str) -> Result<usize, RespError> {
     let mut total = end + CRLF_LEN;
     let mut data = &buf[total..];
