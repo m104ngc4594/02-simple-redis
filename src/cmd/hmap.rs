@@ -1,4 +1,4 @@
-use crate::{RespArray, RespFrame, RespMap, RespNull};
+use crate::{BulkString, RespArray, RespFrame, RespNull};
 
 use super::{
     extract_args, validate_command, CommandError, CommandExecutor, HGet, HGetAll, HSet, RESP_OK,
@@ -19,12 +19,13 @@ impl CommandExecutor for HGetAll {
 
         match hmap {
             Some(hmap) => {
-                let mut map = RespMap::new();
+                let mut ret = Vec::with_capacity(hmap.len() * 2);
                 for v in hmap.iter() {
                     let key = v.key().to_owned();
-                    map.insert(key, v.value().clone());
+                    ret.push(BulkString::new(key).into());
+                    ret.push(v.value().clone());
                 }
-                map.into()
+                RespArray::new(ret).into()
             }
             None => RespArray::new([]).into(),
         }
